@@ -32,6 +32,11 @@ export async function addEntry(entry) {
     throw new Error('Unauthorized - Please login again');
   }
   
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
+    throw new Error(errorData.error || 'Failed to add entry');
+  }
+  
   return res.json();
 }
 

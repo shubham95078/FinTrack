@@ -28,15 +28,21 @@ function formatDate(date) {
 }
 
 function EntryItem({ entry, onEdit, onDelete }) {
+  // Safety check for undefined entry
+  if (!entry) {
+    return null;
+  }
+
   const badgeColor = categoryColors[entry.category] || categoryColors.Other;
   const isLoan = entry.type === "loan";
+  
   return (
     <div className={`expense-card${isLoan ? " loan-card" : ""}`}>
       <div className="expense-main">
         <div className="expense-title">{entry.title}</div>
         <div className="expense-amount" style={{ color: isLoan ? "#ff9800" : entry.type === "income" ? "#388e3c" : "#e57373" }}>
           {isLoan ? (entry.loan_type === "given" ? "→ " : "← ") : entry.type === "income" ? "+" : "-"}
-          ₹{Number(entry.amount).toFixed(2)}
+          ₹{Number(entry.amount || 0).toFixed(2)}
         </div>
       </div>
       <div className="expense-meta">
@@ -47,13 +53,15 @@ function EntryItem({ entry, onEdit, onDelete }) {
             <span className="badge" style={{ background: entry.loan_type === "given" ? "#1976d2" : "#e57373", marginLeft: 8 }}>
               {entry.loan_type === "given" ? "Given" : "Taken"}
             </span>
-            <span style={{ marginLeft: 8, fontWeight: 500 }}>
-              {entry.loan_type === "given" ? `To: ${entry.person}` : `From: ${entry.person}`}
-            </span>
+            {entry.person && (
+              <span style={{ marginLeft: 8, fontWeight: 500 }}>
+                {entry.loan_type === "given" ? `To: ${entry.person}` : `From: ${entry.person}`}
+              </span>
+            )}
             {entry.note && <span style={{ marginLeft: 8, color: '#888', fontStyle: 'italic' }}>{entry.note}</span>}
           </>
         )}
-        {!isLoan && (
+        {!isLoan && entry.type && (
           <span className="badge" style={{ background: entry.type === "income" ? "#388e3c" : "#e57373", marginLeft: 8 }}>
             {entry.type.charAt(0).toUpperCase() + entry.type.slice(1)}
           </span>

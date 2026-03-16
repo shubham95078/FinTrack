@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { getEntries, addEntry, updateEntry, deleteEntry } from "./api";
-import EntryList from "./EntryList";
-import EntryForm from "./EntryForm";
 import Login from "./Login";
 import Register from "./Register";
+import AppLeftPanel from "./AppLeftPanel";
+import AppRightPanel from "./AppRightPanel";
 
 function App() {
   const [entries, setEntries] = useState([]);
@@ -16,6 +16,33 @@ function App() {
   const [user, setUser] = useState(null);
   const [showLogin, setShowLogin] = useState(true);
 
+  const showToast = useCallback((msg, type = "success") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 2000);
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setIsAuthenticated(false);
+    setUser(null);
+    setEntries([]);
+    showToast('Logged out successfully');
+  }, [showToast]);
+
+  const loadEntries = useCallback(async () => {
+    try {
+      const data = await getEntries();
+      setEntries(Array.isArray(data) ? data : []);
+    } catch (error) {
+      if (error.message.includes('Unauthorized')) {
+        handleLogout();
+      } else {
+        setEntries([]);
+      }
+    }
+  }, [handleLogout]);
+
   useEffect(() => {
     // Check if user is already logged in
     const token = localStorage.getItem('token');
@@ -26,31 +53,16 @@ function App() {
       setUser(JSON.parse(savedUser));
       loadEntries();
     }
-  }, []);
-
-  const loadEntries = async () => {
-    try {
-      const data = await getEntries();
-      setEntries(Array.isArray(data) ? data : []);
-    } catch (error) {
-      if (error.message.includes('Unauthorized')) {
-        handleLogout();
-      } else {
-        // If there's any other error, set empty array
-        setEntries([]);
-      }
-    }
-  };
-
-  const showToast = (msg, type = "success") => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 2000);
-  };
+  }, [loadEntries]);
 
   const handleAdd = async (entry) => {
-    const newEntry = await addEntry(entry);
-    setEntries([...entries, newEntry]);
-    showToast(`${entry.type === "income" ? "Income" : entry.type === "expense" ? "Expense" : "Loan"} added!`);
+    try {
+      await addEntry(entry);
+      await loadEntries();
+      showToast(`${entry.type === "income" ? "Income" : entry.type === "expense" ? "Expense" : "Loan"} added!`);
+    } catch (error) {
+      showToast(error.message || "Error adding entry. Please try again.", "error");
+    }
   };
 
   const handleUpdate = async (id, entry) => {
@@ -79,15 +91,6 @@ function App() {
     setUser(data.user);
     loadEntries();
     showToast(`Welcome to FinTrack, ${data.user.username}!`);
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setIsAuthenticated(false);
-    setUser(null);
-    setEntries([]);
-    showToast('Logged out successfully');
   };
 
   const switchToRegister = () => setShowLogin(false);
@@ -161,7 +164,6 @@ function App() {
             right: '25px',
             background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
             color: 'white',
-            border: 'none',
             padding: '15px 30px',
             borderRadius: '50px',
             cursor: 'pointer',
@@ -190,96 +192,35 @@ function App() {
           <span>👋 Welcome, {user?.username}!</span>
         </div>
       </div>
-      <div className="summary-card">
-        <span>
-          Income: <span style={{color: '#388e3c'}}>₹{totalIncome.toFixed(2)}</span>
-          <button
-            style={{ marginLeft: 10, fontSize: 14, padding: '2px 10px', borderRadius: 6, border: 'none', background: '#e3f2fd', cursor: 'pointer' }}
-            onClick={() => setShowIncomeBreakdown((v) => !v)}
-          >
-            {showIncomeBreakdown ? '▲' : '▼'}
-          </button>
-        </span>
-        <span>
-          Expense: <span style={{color: '#e57373'}}>₹{totalExpense.toFixed(2)}</span>
-          <button
-            style={{ marginLeft: 10, fontSize: 14, padding: '2px 10px', borderRadius: 6, border: 'none', background: '#ffebee', cursor: 'pointer' }}
-            onClick={() => setShowExpenseBreakdown((v) => !v)}
-          >
-            {showExpenseBreakdown ? '▲' : '▼'}
-          </button>
-        </span>
-        <span>
-          Balance: <span style={{color: balance >= 0 ? '#1976d2' : '#e57373'}}>₹{balance.toFixed(2)}</span>
-          <button
-            style={{ marginLeft: 10, fontSize: 14, padding: '2px 10px', borderRadius: 6, border: 'none', background: '#e8eaf6', cursor: 'pointer' }}
-            onClick={() => setShowBalanceBreakdown((v) => !v)}
-          >
-            {showBalanceBreakdown ? '▲' : '▼'}
-          </button>
-        </span>
-      </div>
-      {showIncomeBreakdown && (
-        <div style={{ background: '#e3f2fd', borderRadius: 10, margin: '0 0 18px 0', padding: '10px 18px', fontSize: '1em' }}>
-          <strong>Income by Mode:</strong>
-          <ul style={{ margin: '8px 0 0 0', padding: 0, listStyle: 'none' }}>
-            {Object.entries(incomeByCategory).map(([cat, amt]) => (
-              <li key={cat} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
-                <span>{cat}</span>
-                <span>₹{amt.toFixed(2)}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-      {showExpenseBreakdown && (
-        <div style={{ background: '#ffebee', borderRadius: 10, margin: '0 0 18px 0', padding: '10px 18px', fontSize: '1em' }}>
-          <strong>Expense by Category:</strong>
-          <ul style={{ margin: '8px 0 0 0', padding: 0, listStyle: 'none' }}>
-            {Object.entries(expenseByCategory).map(([cat, amt]) => (
-              <li key={cat} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
-                <span>{cat}</span>
-                <span>₹{amt.toFixed(2)}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-      {showBalanceBreakdown && (
-        <div style={{ background: '#e8eaf6', borderRadius: 10, margin: '0 0 18px 0', padding: '10px 18px', fontSize: '1em' }}>
-          <strong>Balance by Source:</strong>
-          <ul style={{ margin: '8px 0 0 0', padding: 0, listStyle: 'none' }}>
-            {Object.entries(balanceBySource).map(([cat, amt]) => (
-              <li key={cat} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
-                <span>{cat}</span>
-                <span>₹{amt.toFixed(2)}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-      <EntryForm
-        onSubmit={editing ? (entry) => handleUpdate(editing.id, entry) : handleAdd}
-        initial={editing}
-        onCancel={() => setEditing(null)}
-      />
-      {safeEntries.length === 0 ? (
-        <div className="no-entries">
-          <p>No financial entries yet. Start by adding your first expense, income, or loan!</p>
-        </div>
-      ) : (
-        <EntryList
+      <div className="app-layout">
+        <AppLeftPanel
+          editing={editing}
+          onSubmit={editing ? handleUpdate : handleAdd}
+          onCancelEdit={() => setEditing(null)}
           entries={safeEntries}
           onEdit={setEditing}
           onDelete={handleDelete}
         />
-      )}
-      {loans.length > 0 && (
-        <div className="summary-card" style={{marginTop: 24, background: '#fff3e0'}}>
-          <span>Loan Given: <span style={{color: '#1976d2'}}>₹{totalLoanGiven.toFixed(2)}</span></span>
-          <span>Loan Taken: <span style={{color: '#e57373'}}>₹{totalLoanTaken.toFixed(2)}</span></span>
-        </div>
-      )}
+
+        <AppRightPanel
+          totalIncome={totalIncome}
+          totalExpense={totalExpense}
+          balance={balance}
+          showIncomeBreakdown={showIncomeBreakdown}
+          setShowIncomeBreakdown={setShowIncomeBreakdown}
+          showExpenseBreakdown={showExpenseBreakdown}
+          setShowExpenseBreakdown={setShowExpenseBreakdown}
+          showBalanceBreakdown={showBalanceBreakdown}
+          setShowBalanceBreakdown={setShowBalanceBreakdown}
+          incomeByCategory={incomeByCategory}
+          expenseByCategory={expenseByCategory}
+          balanceBySource={balanceBySource}
+          entries={safeEntries}
+          loans={loans}
+          totalLoanGiven={totalLoanGiven}
+          totalLoanTaken={totalLoanTaken}
+        />
+      </div>
       {toast && (
         <div className={`toast ${toast.type}`}>{toast.msg}</div>
       )}

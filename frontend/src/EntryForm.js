@@ -22,7 +22,8 @@ function EntryForm({ onSubmit, initial, onCancel }) {
     e.preventDefault();
     if (!form.title || !form.amount || !form.category || !form.type) return;
     if (form.type === "loan" && (!form.loan_type || !form.person)) return;
-    onSubmit({ ...form, amount: parseFloat(form.amount) });
+    const entryData = { ...form, amount: Number(form.amount) };
+    onSubmit(entryData);
     setForm(initialState);
   };
 

@@ -3,6 +3,7 @@ const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
 const bodyParser = require('body-parser');
 const path = require('path');
+const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
@@ -16,7 +17,11 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Database setup
-const dbPath = path.join(__dirname, 'instance', 'expenses.db');
+const dbDir = path.join(__dirname, 'instance');
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
+const dbPath = path.join(dbDir, 'expenses.db');
 const db = new sqlite3.Database(dbPath);
 
 // Create tables if they don't exist
@@ -43,21 +48,49 @@ db.serialize(() => {
     person TEXT,
     note TEXT,
     FOREIGN KEY (user_id) REFERENCES users (id)
-  )`);
+  )`, (err) => {
+    if (err) {
+      console.error('Error creating entries table:', err);
+    } else {
+      console.log('Entries table created/verified successfully');
+      // Verify table structure and backfill user_id column if missing (older DBs)
+      db.all("PRAGMA table_info(entries)", (err, info) => {
+        if (err) {
+          console.error('Error getting table info:', err);
+        } else {
+          const hasUserId = info.some((col) => col.name === 'user_id');
+          if (!hasUserId) {
+            console.warn('Adding missing user_id column to entries table');
+            db.run('ALTER TABLE entries ADD COLUMN user_id INTEGER', (alterErr) => {
+              if (alterErr) {
+                console.error('Error adding user_id column:', alterErr);
+              } else {
+                console.log('user_id column added to entries table');
+              }
+            });
+          }
+          console.log('Entries table structure:', info);
+        }
+      });
+    }
+  });
 });
 
 // Helper function to convert database row to object
-const rowToObject = (row) => ({
-  id: row.id,
-  title: row.title,
-  amount: row.amount,
-  category: row.category,
-  date: row.date,
-  type: row.type,
-  loan_type: row.loan_type,
-  person: row.person,
-  note: row.note
-});
+const rowToObject = (row) => {
+  if (!row) return null;
+  return {
+    id: row.id,
+    title: row.title,
+    amount: Number(row.amount) || 0,
+    category: row.category,
+    date: row.date,
+    type: row.type,
+    loan_type: row.loan_type,
+    person: row.person,
+    note: row.note
+  };
+};
 
 // Authentication middleware
 const authenticateToken = (req, res, next) => {
@@ -179,7 +212,7 @@ app.get('/entries', authenticateToken, (req, res) => {
       console.error('Error fetching entries:', err);
       return res.status(500).json({ error: 'Internal server error' });
     }
-    const entries = rows.map(rowToObject);
+    const entries = rows.map(rowToObject).filter(Boolean);
     res.json(entries);
   });
 });
@@ -188,8 +221,14 @@ app.get('/entries', authenticateToken, (req, res) => {
 app.post('/entries', authenticateToken, (req, res) => {
   const { title, amount, category, date, type, loan_type, person, note } = req.body;
   
-  if (!title || !amount || !category || !type) {
+  if (!title || amount === undefined || amount === null || amount === '' || !category || !type) {
     return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  // Convert amount to number - ensure it's a valid number
+  const amountNum = Number(amount);
+  if (isNaN(amountNum) || amountNum <= 0) {
+    return res.status(400).json({ error: 'Invalid amount. Amount must be a positive number.' });
   }
 
   const currentDate = date || new Date().toISOString().split('T')[0];
@@ -197,7 +236,7 @@ app.post('/entries', authenticateToken, (req, res) => {
   const sql = `INSERT INTO entries (user_id, title, amount, category, date, type, loan_type, person, note) 
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
   
-  db.run(sql, [req.user.userId, title, amount, category, currentDate, type, loan_type, person, note], function(err) {
+  db.run(sql, [req.user.userId, title, amountNum, category, currentDate, type, loan_type || null, person || null, note || null], function(err) {
     if (err) {
       console.error('Error adding entry:', err);
       return res.status(500).json({ error: 'Internal server error' });
@@ -236,12 +275,18 @@ app.put('/entries/:id', authenticateToken, (req, res) => {
                   type = ?, loan_type = ?, person = ?, note = ?
                   WHERE id = ? AND user_id = ?`;
     
+    const amountNum = amount !== undefined && amount !== null ? Number(amount) : row.amount;
+    // Validate amount when provided to prevent non-positive updates
+    if ((amount !== undefined && amount !== null) && (isNaN(amountNum) || amountNum <= 0)) {
+      return res.status(400).json({ error: 'Invalid amount. Amount must be a positive number.' });
+    }
+    
     db.run(sql, [
-      title || row.title,
-      amount || row.amount,
-      category || row.category,
-      date || row.date,
-      type || row.type,
+      title !== undefined ? title : row.title,
+      amountNum,
+      category !== undefined ? category : row.category,
+      date !== undefined ? date : row.date,
+      type !== undefined ? type : row.type,
       loan_type !== undefined ? loan_type : row.loan_type,
       person !== undefined ? person : row.person,
       note !== undefined ? note : row.note,

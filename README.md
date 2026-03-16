@@ -13,7 +13,14 @@ A modern, secure personal finance management application built with Node.js, Exp
 - 💰 **Expense Tracking** - Monitor spending by category with visual breakdowns
 - 💵 **Income Management** - Track income sources and patterns
 - 🏦 **Loan Tracking** - Manage loans given and taken with person details
-- 📊 **Financial Analytics** - Beautiful charts and summaries
+- 📊 **Smart Analytics Dashboard**
+  - Monthly spending trend (Jan → Dec) for the current year
+  - Category-wise spending (all time and per selected month)
+  - Income vs expense comparison (including loans)
+  - Month selector to inspect any month’s totals and categories
+- 🧾 **Two‑pane Layout**
+  - Left: fast entry input and history list
+  - Right: summaries, breakdowns, and analytics
 - 🔒 **Data Privacy** - Each user's data is completely isolated
 - 📱 **Responsive Design** - Works perfectly on all devices
 - 🎨 **Modern UI** - Beautiful, intuitive interface
