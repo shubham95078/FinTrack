@@ -1,4 +1,7 @@
-const API_URL = "http://localhost:5000/entries";
+// CRA (Create React App) uses build-time env vars with the `REACT_APP_` prefix.
+// When running with Docker, set REACT_APP_API_URL to `http://backend:5000/entries`.
+const API_URL =
+  process.env.REACT_APP_API_URL || "http://localhost:5000/entries";
 
 // Helper function to get auth headers
 const getAuthHeaders = () => {
@@ -14,10 +17,14 @@ export async function getEntries() {
     headers: getAuthHeaders()
   });
   
-  if (res.status === 401) {
+  if (res.status === 401 || res.status === 403) {
     throw new Error('Unauthorized - Please login again');
   }
   
+  if (!res.ok) {
+    throw new Error('Failed to fetch entries');
+  }
+
   return res.json();
 }
 
@@ -28,7 +35,7 @@ export async function addEntry(entry) {
     body: JSON.stringify(entry),
   });
   
-  if (res.status === 401) {
+  if (res.status === 401 || res.status === 403) {
     throw new Error('Unauthorized - Please login again');
   }
   
@@ -47,10 +54,15 @@ export async function updateEntry(id, entry) {
     body: JSON.stringify(entry),
   });
   
-  if (res.status === 401) {
+  if (res.status === 401 || res.status === 403) {
     throw new Error('Unauthorized - Please login again');
   }
   
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
+    throw new Error(errorData.error || 'Failed to update entry');
+  }
+
   return res.json();
 }
 
@@ -60,7 +72,12 @@ export async function deleteEntry(id) {
     headers: getAuthHeaders()
   });
   
-  if (res.status === 401) {
+  if (res.status === 401 || res.status === 403) {
     throw new Error('Unauthorized - Please login again');
+  }
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
+    throw new Error(errorData.error || 'Failed to delete entry');
   }
 } 

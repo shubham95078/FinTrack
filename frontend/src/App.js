@@ -61,22 +61,42 @@ function App() {
       await loadEntries();
       showToast(`${entry.type === "income" ? "Income" : entry.type === "expense" ? "Expense" : "Loan"} added!`);
     } catch (error) {
+      if (error.message && error.message.includes('Unauthorized')) {
+        handleLogout();
+        return;
+      }
       showToast(error.message || "Error adding entry. Please try again.", "error");
     }
   };
 
   const handleUpdate = async (id, entry) => {
-    const updated = await updateEntry(id, entry);
-    setEntries(entries.map((e) => (e.id === id ? updated : e)));
-    setEditing(null);
-    showToast(`${entry.type === "income" ? "Income" : entry.type === "expense" ? "Expense" : "Loan"} updated!`);
+    try {
+      const updated = await updateEntry(id, entry);
+      setEntries(entries.map((e) => (e.id === id ? updated : e)));
+      setEditing(null);
+      showToast(`${entry.type === "income" ? "Income" : entry.type === "expense" ? "Expense" : "Loan"} updated!`);
+    } catch (error) {
+      if (error.message && error.message.includes('Unauthorized')) {
+        handleLogout();
+        return;
+      }
+      showToast(error.message || "Error updating entry. Please try again.", "error");
+    }
   };
 
   const handleDelete = async (id) => {
-    const entry = entries.find((e) => e.id === id);
-    await deleteEntry(id);
-    setEntries(entries.filter((e) => e.id !== id));
-    showToast(`${entry.type === "income" ? "Income" : entry.type === "expense" ? "Expense" : "Loan"} deleted!`, "error");
+    try {
+      const entry = entries.find((e) => e.id === id);
+      await deleteEntry(id);
+      setEntries(entries.filter((e) => e.id !== id));
+      showToast(`${entry.type === "income" ? "Income" : entry.type === "expense" ? "Expense" : "Loan"} deleted!`, "error");
+    } catch (error) {
+      if (error.message && error.message.includes('Unauthorized')) {
+        handleLogout();
+        return;
+      }
+      showToast(error.message || "Error deleting entry. Please try again.", "error");
+    }
   };
 
   const handleLogin = (data) => {
