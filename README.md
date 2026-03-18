@@ -70,6 +70,40 @@ npm start
 ```
 The frontend will run on `http://localhost:3000`
 
+## 📦 Containerized Setup (Beginner Friendly)
+
+This repo includes container configuration files to run the backend + frontend together.
+
+### 1. Prerequisites
+- Install Docker Desktop (provides the container engine and compose command)
+
+### 2. Configure environment variables
+Create a root environment file:
+```bash
+copy .env.example .env
+```
+Notes:
+- `.env` contains secrets (like `JWT_SECRET`) so do **not** commit or upload it to GitHub.
+- `.env.example` is safe to commit.
+
+### 3. Run with Compose
+From the project root (`FinTrack`), run:
+```bash
+docker compose up --build -d
+```
+
+### 4. Open the app
+- Frontend: `http://localhost:3000`
+- Backend health: `http://localhost:5000/health`
+
+### 5. Stop containers
+```bash
+docker compose down
+```
+
+### SQLite note
+- SQLite database files are persisted using a Docker volume, so your entries remain after restarting containers.
+
 ## 🔧 Configuration
 
 ### Environment Variables
