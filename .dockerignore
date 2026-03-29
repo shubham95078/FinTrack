@@ -1,8 +1,0 @@
-node_modules
-build
-.DS_Store
-.env
-**/.env
-**/instance/*.db
-**/instance/*.db-journal
-

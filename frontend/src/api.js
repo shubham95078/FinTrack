@@ -1,5 +1,4 @@
-// CRA (Create React App) uses build-time env vars with the `REACT_APP_` prefix.
-// When running with Docker, set REACT_APP_API_URL to `http://backend:5000/entries`.
+// CRA uses build-time env vars with the `REACT_APP_` prefix (optional `frontend/.env`).
 const API_URL =
   process.env.REACT_APP_API_URL || "http://localhost:5000/entries";
 

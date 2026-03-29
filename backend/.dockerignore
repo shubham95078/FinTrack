@@ -1,7 +1,0 @@
-node_modules
-instance/*.db
-instance/*.db-journal
-instance/*.sqlite*
-.env
-npm-debug.log
-
