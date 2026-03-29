@@ -60,58 +60,37 @@ cd backend
 npm install
 npm run dev
 ```
-The backend will run on `http://localhost:5000`
+The API listens on `http://localhost:5000` (see `GET /health` to verify it is running).
 
 ### 3. Frontend Setup
+Open a **second** terminal (keep the backend running), then:
 ```bash
-cd ../frontend
+cd frontend
 npm install
 npm start
 ```
-The frontend will run on `http://localhost:3000`
-
-## 📦 Containerized Setup (Beginner Friendly)
-
-This repo includes container configuration files to run the backend + frontend together.
-
-### 1. Prerequisites
-- Install Docker Desktop (provides the container engine and compose command)
-
-### 2. Configure environment variables
-Create a root environment file:
-```bash
-copy .env.example .env
-```
-Notes:
-- `.env` contains secrets (like `JWT_SECRET`) so do **not** commit or upload it to GitHub.
-- `.env.example` is safe to commit.
-
-### 3. Run with Compose
-From the project root (`FinTrack`), run:
-```bash
-docker compose up --build -d
-```
-
-### 4. Open the app
-- Frontend: `http://localhost:3000`
-- Backend health: `http://localhost:5000/health`
-
-### 5. Stop containers
-```bash
-docker compose down
-```
-
-### SQLite note
-- SQLite database files are persisted using a Docker volume, so your entries remain after restarting containers.
+The app opens at `http://localhost:3000` and talks to the backend on port 5000 by default.
 
 ## 🔧 Configuration
 
 ### Environment Variables
-Create a `.env` file in the backend directory:
+
+**Backend** — create `backend/.env` (you can start from the root [`.env.example`](.env.example)):
+
 ```env
 JWT_SECRET=your-super-secret-key-here
 PORT=5000
 ```
+
+Use a long, random `JWT_SECRET` in any real deployment. Do **not** commit `.env` files.
+
+**Frontend (optional)** — if your API is not at `http://localhost:5000/entries`, create `frontend/.env`:
+
+```env
+REACT_APP_API_URL=http://your-host:port/entries
+```
+
+Create React App reads `REACT_APP_*` variables at **build** time; restart `npm start` after changing them.
 
 ### Database
 - SQLite database is automatically created on first run
