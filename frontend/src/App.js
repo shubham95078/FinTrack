@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { getEntries, addEntry, updateEntry, deleteEntry } from "./api";
+import { getEntries, addEntry, updateEntry, deleteEntry, API_BASE } from "./api";
 import Login from "./Login";
 import Register from "./Register";
 import AppLeftPanel from "./AppLeftPanel";
@@ -17,6 +17,7 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
   const [showLogin, setShowLogin] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   const showToast = useCallback((msg, type = "success") => {
     setToast({ msg, type });
@@ -32,6 +33,10 @@ function App() {
     showToast("Logged out successfully");
   }, [showToast]);
 
+  const warmupBackend = useCallback(() => {
+    fetch(`${API_BASE}/health`).catch(() => {});
+  }, []);
+
   const loadEntries = useCallback(async () => {
     try {
       const data = await getEntries();
@@ -39,9 +44,8 @@ function App() {
     } catch (error) {
       if (error.message.includes("Unauthorized")) {
         handleLogout();
-      } else {
-        setEntries([]);
       }
+      // Keep existing entries on temporary network errors (hosted backend wake-up)
     }
   }, [handleLogout]);
 
@@ -52,14 +56,16 @@ function App() {
     if (token && savedUser) {
       setIsAuthenticated(true);
       setUser(JSON.parse(savedUser));
+      warmupBackend();
       loadEntries();
     }
-  }, [loadEntries]);
+  }, [loadEntries, warmupBackend]);
 
   const handleAdd = async (entry) => {
+    setSaving(true);
     try {
-      await addEntry(entry);
-      await loadEntries();
+      const created = await addEntry(entry);
+      setEntries((prev) => [created, ...(Array.isArray(prev) ? prev : [])]);
       showToast(
         `${entry.type === "income" ? "Income" : entry.type === "expense" ? "Expense" : "Loan"} added!`
       );
@@ -69,6 +75,8 @@ function App() {
         return;
       }
       showToast(error.message || "Error adding entry. Please try again.", "error");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -110,6 +118,7 @@ function App() {
   const handleLogin = (data) => {
     setIsAuthenticated(true);
     setUser(data.user);
+    warmupBackend();
     loadEntries();
     showToast(`Welcome back, ${data.user.username}!`);
   };
@@ -117,6 +126,7 @@ function App() {
   const handleRegister = (data) => {
     setIsAuthenticated(true);
     setUser(data.user);
+    warmupBackend();
     loadEntries();
     showToast(`Welcome to FinTrack, ${data.user.username}!`);
   };
@@ -261,6 +271,7 @@ function App() {
           entries={safeEntries}
           onEdit={setEditing}
           onDelete={handleDelete}
+          saving={saving}
         />
 
         <div className="app-right">

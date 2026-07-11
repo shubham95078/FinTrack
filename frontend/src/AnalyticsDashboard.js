@@ -115,7 +115,7 @@ export function getExpenseTotalForMonth(entries, targetMonthKey) {
     .reduce((s, e) => s + e._amount, 0);
 }
 
-function VerticalBars({ rows, color = "#1976d2", height = 160, emptyMessage = "No data yet." }) {
+function VerticalBars({ rows, color = "#1976d2", trackHeight = 120, emptyMessage = "No data yet." }) {
   const max = Math.max(0, ...rows.map((r) => r.value));
   const hasData = rows.some((r) => r.value > 0);
 
@@ -124,18 +124,15 @@ function VerticalBars({ rows, color = "#1976d2", height = 160, emptyMessage = "N
   }
 
   return (
-    <div className="ad-vchart" style={{ height }}>
+    <div className="ad-vchart">
       {rows.map((r) => {
-        const pct = max > 0 ? Math.max(8, Math.round((r.value / max) * 100)) : 0;
+        const barHeight = max > 0 ? Math.max(8, Math.round((r.value / max) * trackHeight)) : 0;
         return (
           <div className="ad-vbar" key={r.key} title={`${r.label}: ${formatINR(r.value)}`}>
-            <div className="ad-vbar-track" aria-hidden="true">
+            <div className="ad-vbar-track" style={{ height: trackHeight }}>
               <div
                 className="ad-vbar-fill"
-                style={{
-                  height: r.value > 0 ? `${pct}%` : "0%",
-                  background: `linear-gradient(180deg, ${color} 0%, rgba(25,118,210,0.20) 100%)`,
-                }}
+                style={{ height: barHeight, backgroundColor: color }}
               />
             </div>
             <div className="ad-vbar-label">{r.label}</div>
@@ -321,7 +318,6 @@ function AnalyticsDashboard({ entries }) {
           <VerticalBars
             rows={monthlySpending}
             color="#ff9800"
-            height={170}
             emptyMessage="No expenses yet. Add an expense to see this chart."
           />
         </Card>
@@ -334,7 +330,6 @@ function AnalyticsDashboard({ entries }) {
           <VerticalBars
             rows={monthlyIncome}
             color="#43a047"
-            height={170}
             emptyMessage="No income yet. Add income to see this chart."
           />
         </Card>
@@ -347,11 +342,7 @@ function AnalyticsDashboard({ entries }) {
           {selectedMonthCategoryRows.length === 0 ? (
             <div className="ad-empty">No spending in this month.</div>
           ) : (
-            <VerticalBars
-              rows={selectedMonthCategoryRows}
-              color="#e57373"
-              height={170}
-            />
+            <VerticalBars rows={selectedMonthCategoryRows} color="#e57373" />
           )}
         </Card>
 
@@ -367,11 +358,7 @@ function AnalyticsDashboard({ entries }) {
           {selectedMonthIncomeRows.length === 0 ? (
             <div className="ad-empty">No income in this month.</div>
           ) : (
-            <VerticalBars
-              rows={selectedMonthIncomeRows}
-              color="#66bb6a"
-              height={170}
-            />
+            <VerticalBars rows={selectedMonthIncomeRows} color="#66bb6a" />
           )}
         </Card>
 
@@ -383,11 +370,7 @@ function AnalyticsDashboard({ entries }) {
           {categorySpendingAllTime.length === 0 ? (
             <div className="ad-empty">No spending categories yet.</div>
           ) : (
-            <VerticalBars
-              rows={categorySpendingAllTime}
-              color="#8e24aa"
-              height={170}
-            />
+            <VerticalBars rows={categorySpendingAllTime} color="#8e24aa" />
           )}
         </Card>
 

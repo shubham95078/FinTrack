@@ -9,6 +9,7 @@ function AppLeftPanel({
   entries,
   onEdit,
   onDelete,
+  saving = false,
 }) {
   const safeEntries = Array.isArray(entries) ? entries : [];
 
@@ -18,6 +19,7 @@ function AppLeftPanel({
         onSubmit={editing ? (entry) => onSubmit(editing.id, entry) : onSubmit}
         initial={editing}
         onCancel={onCancelEdit}
+        saving={saving}
       />
 
       {safeEntries.length === 0 ? (

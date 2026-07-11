@@ -4,13 +4,24 @@ const incomeCategories = ["Salary", "Business", "Investment", "Gift", "Interest"
 const expenseCategories = ["Food", "Rent", "Shopping", "Travel", "Utilities", "Entertainment", "Health", "Education", "Bills", "Other"];
 const loanCategories = ["Personal Loan", "Friend Loan", "Bank Loan", "Other"];
 
-const initialState = { title: "", amount: "", category: "", date: "", type: "expense", loan_type: "given", person: "", note: "" };
+const getToday = () => new Date().toISOString().split("T")[0];
 
-function EntryForm({ onSubmit, initial, onCancel }) {
+const initialState = {
+  title: "",
+  amount: "",
+  category: "",
+  date: getToday(),
+  type: "expense",
+  loan_type: "given",
+  person: "",
+  note: "",
+};
+
+function EntryForm({ onSubmit, initial, onCancel, saving = false }) {
   const [form, setForm] = useState(initial || initialState);
 
   useEffect(() => {
-    setForm(initial || initialState);
+    setForm(initial || { ...initialState, date: getToday() });
   }, [initial]);
 
   const handleChange = (e) => {
@@ -20,11 +31,16 @@ function EntryForm({ onSubmit, initial, onCancel }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (saving) return;
     if (!form.title || !form.amount || !form.category || !form.type) return;
     if (form.type === "loan" && (!form.loan_type || !form.person)) return;
-    const entryData = { ...form, amount: Number(form.amount) };
+    const entryData = {
+      ...form,
+      amount: Number(form.amount),
+      date: form.date || getToday(),
+    };
     onSubmit(entryData);
-    setForm(initialState);
+    setForm({ ...initialState, date: getToday() });
   };
 
   let categories = expenseCategories;
@@ -94,7 +110,9 @@ function EntryForm({ onSubmit, initial, onCancel }) {
         value={form.date}
         onChange={handleChange}
       />
-      <button type="submit" className="primary-btn">{initial ? "Update" : "Add"}</button>
+      <button type="submit" className="primary-btn" disabled={saving}>
+        {saving ? "Saving..." : initial ? "Update" : "Add"}
+      </button>
       {initial && <button type="button" className="secondary-btn" onClick={onCancel}>Cancel</button>}
     </form>
   );

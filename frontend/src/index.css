@@ -246,14 +246,13 @@ h1 {
   padding: 6px 0 2px 0;
 }
 
-/* Vertical charts */
+/* Vertical charts - use fixed pixel bar heights (works in production builds) */
 .ad-vchart {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(22px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(28px, 1fr));
   gap: 10px;
   align-items: end;
   padding: 6px 2px 0 2px;
-  min-height: 170px;
 }
 
 .ad-vbar {
@@ -261,24 +260,22 @@ h1 {
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  min-width: 18px;
-  height: 100%;
+  min-width: 22px;
 }
 
 .ad-vbar-track {
   width: 100%;
-  flex: 1 1 auto;
   border-radius: 10px;
   background: rgba(25, 118, 210, 0.10);
   display: flex;
   align-items: flex-end;
   overflow: hidden;
-  min-height: 90px;
 }
 
 .ad-vbar-fill {
   width: 100%;
   border-radius: 10px;
+  min-height: 4px;
 }
 
 .ad-vbar-label {
@@ -368,6 +365,10 @@ h1 {
 }
 .primary-btn:hover {
   background: #1565c0;
+}
+.primary-btn:disabled {
+  opacity: 0.7;
+  cursor: wait;
 }
 .secondary-btn {
   background: #e0e0e0;
