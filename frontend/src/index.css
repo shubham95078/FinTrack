@@ -41,6 +41,7 @@ body::after {
   box-shadow: 0 4px 24px rgba(0,0,0,0.08);
   position: relative;
   z-index: 1;
+  overflow: visible;
 }
 
 .app-layout {
@@ -57,6 +58,8 @@ body::after {
 
 .app-right {
   position: relative;
+  overflow: visible;
+  width: 100%;
 }
 
 @media (max-width: 900px) {
@@ -88,11 +91,17 @@ h1 {
 
 /* Smart Analytics Dashboard */
 .ad-section {
-  margin: 10px 0 18px 0;
-  padding: 14px 14px 6px 14px;
+  margin: 18px 0 0 0;
+  padding: 16px 16px 10px 16px;
   border-radius: 16px;
-  background: rgba(25, 118, 210, 0.06);
-  border: 1px solid rgba(25, 118, 210, 0.10);
+  background: #eef5ff;
+  border: 1px solid rgba(25, 118, 210, 0.22);
+  min-height: 120px;
+}
+
+.ad-section-error {
+  background: #fff3f3;
+  border-color: rgba(229, 115, 115, 0.45);
 }
 
 .ad-section-header {
@@ -101,6 +110,7 @@ h1 {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 10px;
+  flex-wrap: wrap;
 }
 
 .ad-section-title {
@@ -111,7 +121,6 @@ h1 {
 .ad-section-subtitle {
   font-size: 0.92em;
   color: #607d8b;
-  white-space: nowrap;
 }
 
 .ad-month-picker {
@@ -139,7 +148,7 @@ h1 {
 
 .ad-grid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 14px;
   margin: 0 0 6px 0;
 }

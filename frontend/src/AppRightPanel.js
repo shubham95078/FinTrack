@@ -1,5 +1,27 @@
 import React from "react";
-import AnalyticsDashboard from "./AnalyticsDashboard";
+
+class AnalyticsErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <section className="ad-section ad-section-error">
+          <div className="ad-section-title">Analytics could not load</div>
+          <div className="ad-empty">{this.state.error.message}</div>
+        </section>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 function AppRightPanel({
   totalIncome,
@@ -14,13 +36,10 @@ function AppRightPanel({
   incomeByCategory,
   expenseByCategory,
   balanceBySource,
-  entries,
   loans,
   totalLoanGiven,
   totalLoanTaken,
 }) {
-  const safeEntries = Array.isArray(entries) ? entries : [];
-
   return (
     <div className="app-right">
       <div className="summary-card">
@@ -167,8 +186,6 @@ function AppRightPanel({
         </div>
       )}
 
-      <AnalyticsDashboard entries={safeEntries} />
-
       {Array.isArray(loans) && loans.length > 0 && (
         <div className="summary-card" style={{ marginTop: 24, background: "#fff3e0" }}>
           <span>
@@ -186,4 +203,5 @@ function AppRightPanel({
 }
 
 export default AppRightPanel;
+export { AnalyticsErrorBoundary };
 

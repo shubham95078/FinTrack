@@ -3,7 +3,8 @@ import { getEntries, addEntry, updateEntry, deleteEntry } from "./api";
 import Login from "./Login";
 import Register from "./Register";
 import AppLeftPanel from "./AppLeftPanel";
-import AppRightPanel from "./AppRightPanel";
+import AppRightPanel, { AnalyticsErrorBoundary } from "./AppRightPanel";
+import AnalyticsDashboard from "./AnalyticsDashboard";
 
 function App() {
   const [entries, setEntries] = useState([]);
@@ -235,12 +236,15 @@ function App() {
           incomeByCategory={incomeByCategory}
           expenseByCategory={expenseByCategory}
           balanceBySource={balanceBySource}
-          entries={safeEntries}
           loans={loans}
           totalLoanGiven={totalLoanGiven}
           totalLoanTaken={totalLoanTaken}
         />
       </div>
+
+      <AnalyticsErrorBoundary>
+        <AnalyticsDashboard entries={safeEntries} />
+      </AnalyticsErrorBoundary>
       {toast && (
         <div className={`toast ${toast.type}`}>{toast.msg}</div>
       )}
