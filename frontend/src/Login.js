@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { API_BASE } from './api';
 import './Login.css';
 
 const Login = ({ onLogin, onSwitchToRegister }) => {
@@ -22,7 +23,7 @@ const Login = ({ onLogin, onSwitchToRegister }) => {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:5000/auth/login', {
+      const response = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
