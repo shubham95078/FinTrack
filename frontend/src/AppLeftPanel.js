@@ -1,6 +1,8 @@
 import React from "react";
 import EntryForm from "./EntryForm";
 import EntryList from "./EntryList";
+import AnalyticsDashboard from "./AnalyticsDashboard";
+import { AnalyticsErrorBoundary } from "./AppRightPanel";
 
 function AppLeftPanel({
   editing,
@@ -15,6 +17,12 @@ function AppLeftPanel({
 
   return (
     <div className="app-left">
+      <div className="analytics-panel">
+        <AnalyticsErrorBoundary>
+          <AnalyticsDashboard entries={safeEntries} />
+        </AnalyticsErrorBoundary>
+      </div>
+
       <EntryForm
         onSubmit={editing ? (entry) => onSubmit(editing.id, entry) : onSubmit}
         initial={editing}

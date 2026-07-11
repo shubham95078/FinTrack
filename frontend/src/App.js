@@ -3,8 +3,7 @@ import { getEntries, addEntry, updateEntry, deleteEntry, API_BASE } from "./api"
 import Login from "./Login";
 import Register from "./Register";
 import AppLeftPanel from "./AppLeftPanel";
-import AppRightPanel, { AnalyticsErrorBoundary } from "./AppRightPanel";
-import AnalyticsDashboard from "./AnalyticsDashboard";
+import AppRightPanel from "./AppRightPanel";
 import SummaryBar from "./SummaryBar";
 
 function App() {
@@ -262,12 +261,6 @@ function App() {
         balanceBySource={balanceBySource}
         breakdownOnly
       />
-
-      <div className="analytics-panel">
-        <AnalyticsErrorBoundary>
-          <AnalyticsDashboard entries={safeEntries} />
-        </AnalyticsErrorBoundary>
-      </div>
 
       <div className="app-layout">
         <AppLeftPanel
