@@ -1,10 +1,26 @@
 import React, { useMemo, useState } from "react";
 
 function parseEntryDate(dateStr) {
-  if (!dateStr) return null;
+  if (!dateStr) return new Date();
+
   const s = String(dateStr).trim();
-  const d = new Date(s.includes("T") ? s : `${s}T00:00:00`);
-  return Number.isNaN(d.getTime()) ? null : d;
+  if (!s) return new Date();
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    const [y, m, d] = s.split("-").map(Number);
+    const parsed = new Date(y, m - 1, d);
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+  }
+
+  const iso = new Date(s.includes("T") ? s : `${s}T12:00:00`);
+  if (!Number.isNaN(iso.getTime())) return iso;
+
+  const fallback = new Date(s);
+  return Number.isNaN(fallback.getTime()) ? new Date() : fallback;
+}
+
+function normalizeType(type) {
+  return String(type || "").trim().toLowerCase();
 }
 
 function formatINR(amount) {
@@ -157,7 +173,8 @@ function AnalyticsDashboard({ entries }) {
       .map((e) => {
         const d = parseEntryDate(e.date);
         const amount = Number(e.amount) || 0;
-        return { ...e, _d: d, _amount: amount };
+        const type = normalizeType(e.type);
+        return { ...e, type, _d: d, _amount: amount };
       })
       .filter((e) => e._d && e._amount > 0 && e.type);
   }, [entries]);
@@ -246,15 +263,22 @@ function AnalyticsDashboard({ entries }) {
   }, [incomeLike, expenseLike]);
 
   if (normalized.length === 0) {
+    const rawCount = Array.isArray(entries) ? entries.filter(Boolean).length : 0;
     return (
       <section className="ad-section" aria-label="Smart Analytics Dashboard">
         <div className="ad-section-header">
           <div>
-            <div className="ad-section-title">📈 Smart Analytics Dashboard</div>
-            <div className="ad-section-subtitle">Add income or expenses to see charts here.</div>
+            <div className="ad-section-title">Smart Analytics Dashboard</div>
+            <div className="ad-section-subtitle">
+              {rawCount > 0
+                ? "Entries found, but charts need valid amount and type."
+                : "Add income or expenses to see charts here."}
+            </div>
           </div>
         </div>
-        <div className="ad-empty">No entries yet.</div>
+        <div className="ad-empty">
+          {rawCount > 0 ? `${rawCount} entries loaded — charts will appear shortly.` : "No entries yet."}
+        </div>
       </section>
     );
   }
@@ -263,7 +287,7 @@ function AnalyticsDashboard({ entries }) {
     <section className="ad-section" aria-label="Smart Analytics Dashboard">
       <div className="ad-section-header">
         <div>
-          <div className="ad-section-title">📈 Smart Analytics Dashboard</div>
+          <div className="ad-section-title">Smart Analytics Dashboard</div>
           <div className="ad-section-subtitle">
             Insights from your entries (loans included)
           </div>

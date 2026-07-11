@@ -5,6 +5,7 @@ import Register from "./Register";
 import AppLeftPanel from "./AppLeftPanel";
 import AppRightPanel, { AnalyticsErrorBoundary } from "./AppRightPanel";
 import AnalyticsDashboard from "./AnalyticsDashboard";
+import SummaryBar from "./SummaryBar";
 
 function App() {
   const [entries, setEntries] = useState([]);
@@ -23,12 +24,12 @@ function App() {
   }, []);
 
   const handleLogout = useCallback(() => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
     setIsAuthenticated(false);
     setUser(null);
     setEntries([]);
-    showToast('Logged out successfully');
+    showToast("Logged out successfully");
   }, [showToast]);
 
   const loadEntries = useCallback(async () => {
@@ -36,7 +37,7 @@ function App() {
       const data = await getEntries();
       setEntries(Array.isArray(data) ? data : []);
     } catch (error) {
-      if (error.message.includes('Unauthorized')) {
+      if (error.message.includes("Unauthorized")) {
         handleLogout();
       } else {
         setEntries([]);
@@ -45,10 +46,9 @@ function App() {
   }, [handleLogout]);
 
   useEffect(() => {
-    // Check if user is already logged in
-    const token = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('user');
-    
+    const token = localStorage.getItem("token");
+    const savedUser = localStorage.getItem("user");
+
     if (token && savedUser) {
       setIsAuthenticated(true);
       setUser(JSON.parse(savedUser));
@@ -60,9 +60,11 @@ function App() {
     try {
       await addEntry(entry);
       await loadEntries();
-      showToast(`${entry.type === "income" ? "Income" : entry.type === "expense" ? "Expense" : "Loan"} added!`);
+      showToast(
+        `${entry.type === "income" ? "Income" : entry.type === "expense" ? "Expense" : "Loan"} added!`
+      );
     } catch (error) {
-      if (error.message && error.message.includes('Unauthorized')) {
+      if (error.message && error.message.includes("Unauthorized")) {
         handleLogout();
         return;
       }
@@ -75,9 +77,11 @@ function App() {
       const updated = await updateEntry(id, entry);
       setEntries(entries.map((e) => (e.id === id ? updated : e)));
       setEditing(null);
-      showToast(`${entry.type === "income" ? "Income" : entry.type === "expense" ? "Expense" : "Loan"} updated!`);
+      showToast(
+        `${entry.type === "income" ? "Income" : entry.type === "expense" ? "Expense" : "Loan"} updated!`
+      );
     } catch (error) {
-      if (error.message && error.message.includes('Unauthorized')) {
+      if (error.message && error.message.includes("Unauthorized")) {
         handleLogout();
         return;
       }
@@ -90,9 +94,12 @@ function App() {
       const entry = entries.find((e) => e.id === id);
       await deleteEntry(id);
       setEntries(entries.filter((e) => e.id !== id));
-      showToast(`${entry.type === "income" ? "Income" : entry.type === "expense" ? "Expense" : "Loan"} deleted!`, "error");
+      showToast(
+        `${entry.type === "income" ? "Income" : entry.type === "expense" ? "Expense" : "Loan"} deleted!`,
+        "error"
+      );
     } catch (error) {
-      if (error.message && error.message.includes('Unauthorized')) {
+      if (error.message && error.message.includes("Unauthorized")) {
         handleLogout();
         return;
       }
@@ -117,23 +124,35 @@ function App() {
   const switchToRegister = () => setShowLogin(false);
   const switchToLogin = () => setShowLogin(true);
 
-  // Ensure entries is always an array
   const safeEntries = Array.isArray(entries) ? entries : [];
-  
-  // Calculate income, expense, and balance including loans
-  const totalIncome = safeEntries.filter(e => e.type === "income").reduce((sum, e) => sum + Number(e.amount), 0)
-    + safeEntries.filter(e => e.type === "loan" && e.loan_type === "taken").reduce((sum, e) => sum + Number(e.amount), 0);
-  const totalExpense = safeEntries.filter(e => e.type === "expense").reduce((sum, e) => sum + Number(e.amount), 0)
-    + safeEntries.filter(e => e.type === "loan" && e.loan_type === "given").reduce((sum, e) => sum + Number(e.amount), 0);
+
+  const totalIncome =
+    safeEntries
+      .filter((e) => e.type === "income")
+      .reduce((sum, e) => sum + Number(e.amount), 0) +
+    safeEntries
+      .filter((e) => e.type === "loan" && e.loan_type === "taken")
+      .reduce((sum, e) => sum + Number(e.amount), 0);
+
+  const totalExpense =
+    safeEntries
+      .filter((e) => e.type === "expense")
+      .reduce((sum, e) => sum + Number(e.amount), 0) +
+    safeEntries
+      .filter((e) => e.type === "loan" && e.loan_type === "given")
+      .reduce((sum, e) => sum + Number(e.amount), 0);
+
   const balance = totalIncome - totalExpense;
 
-  // Loan summary
-  const loans = safeEntries.filter(e => e.type === "loan");
-  const totalLoanGiven = loans.filter(l => l.loan_type === "given").reduce((sum, l) => sum + Number(l.amount), 0);
-  const totalLoanTaken = loans.filter(l => l.loan_type === "taken").reduce((sum, l) => sum + Number(l.amount), 0);
+  const loans = safeEntries.filter((e) => e.type === "loan");
+  const totalLoanGiven = loans
+    .filter((l) => l.loan_type === "given")
+    .reduce((sum, l) => sum + Number(l.amount), 0);
+  const totalLoanTaken = loans
+    .filter((l) => l.loan_type === "taken")
+    .reduce((sum, l) => sum + Number(l.amount), 0);
 
-  // Income breakdown by category (mode)
-  const incomeEntries = safeEntries.filter(e => e.type === "income");
+  const incomeEntries = safeEntries.filter((e) => e.type === "income");
   const incomeByCategory = incomeEntries.reduce((acc, e) => {
     acc[e.category] = (acc[e.category] || 0) + Number(e.amount);
     return acc;
@@ -142,8 +161,7 @@ function App() {
     incomeByCategory["Loan Taken"] = totalLoanTaken;
   }
 
-  // Expense breakdown by category
-  const expenseEntries = safeEntries.filter(e => e.type === "expense");
+  const expenseEntries = safeEntries.filter((e) => e.type === "expense");
   const expenseByCategory = expenseEntries.reduce((acc, e) => {
     acc[e.category] = (acc[e.category] || 0) + Number(e.amount);
     return acc;
@@ -152,7 +170,6 @@ function App() {
     expenseByCategory["Loan Given"] = totalLoanGiven;
   }
 
-  // Balance breakdown (income sources minus expense sources)
   const balanceBySource = {};
   Object.entries(incomeByCategory).forEach(([cat, amt]) => {
     balanceBySource[cat] = (balanceBySource[cat] || 0) + amt;
@@ -161,7 +178,6 @@ function App() {
     balanceBySource[cat] = (balanceBySource[cat] || 0) - amt;
   });
 
-  // Show authentication if not logged in
   if (!isAuthenticated) {
     return (
       <>
@@ -176,43 +192,67 @@ function App() {
 
   return (
     <div className="container">
-              <button 
-          onClick={handleLogout} 
-          className="logout-btn"
-          style={{
-            position: 'fixed',
-            top: '25px',
-            right: '25px',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            color: 'white',
-            padding: '15px 30px',
-            borderRadius: '50px',
-            cursor: 'pointer',
-            fontSize: '16px',
-            fontWeight: '700',
-            transition: 'all 0.3s ease',
-            backdropFilter: 'blur(15px)',
-            border: '2px solid rgba(255, 255, 255, 0.3)',
-            textTransform: 'uppercase',
-            letterSpacing: '1px',
-            zIndex: 1000,
-            boxShadow: '0 8px 25px rgba(102, 126, 234, 0.4)',
-            minWidth: '120px',
-            height: '55px',
-            fontFamily: 'Arial, sans-serif',
-            display: 'block',
-            textAlign: 'center',
-            lineHeight: '1.2'
-          }}
-        >
-          🚪 Logout
-        </button>
+      <button
+        onClick={handleLogout}
+        className="logout-btn"
+        style={{
+          position: "fixed",
+          top: "25px",
+          right: "25px",
+          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+          color: "white",
+          padding: "15px 30px",
+          borderRadius: "50px",
+          cursor: "pointer",
+          fontSize: "16px",
+          fontWeight: "700",
+          transition: "all 0.3s ease",
+          backdropFilter: "blur(15px)",
+          border: "2px solid rgba(255, 255, 255, 0.3)",
+          textTransform: "uppercase",
+          letterSpacing: "1px",
+          zIndex: 1000,
+          boxShadow: "0 8px 25px rgba(102, 126, 234, 0.4)",
+          minWidth: "120px",
+          height: "55px",
+          fontFamily: "Arial, sans-serif",
+          display: "block",
+          textAlign: "center",
+          lineHeight: "1.2",
+        }}
+      >
+        Logout
+      </button>
+
       <div className="header">
-        <h1>💸 FinTrack - Financial Tracker</h1>
+        <h1>FinTrack - Financial Tracker</h1>
         <div className="user-info">
-          <span>👋 Welcome, {user?.username}!</span>
+          <span>Welcome, {user?.username}!</span>
         </div>
       </div>
+
+      <SummaryBar
+        totalIncome={totalIncome}
+        totalExpense={totalExpense}
+        balance={balance}
+        showIncomeBreakdown={showIncomeBreakdown}
+        setShowIncomeBreakdown={setShowIncomeBreakdown}
+        showExpenseBreakdown={showExpenseBreakdown}
+        setShowExpenseBreakdown={setShowExpenseBreakdown}
+        showBalanceBreakdown={showBalanceBreakdown}
+        setShowBalanceBreakdown={setShowBalanceBreakdown}
+      />
+
+      <AppRightPanel
+        showIncomeBreakdown={showIncomeBreakdown}
+        showExpenseBreakdown={showExpenseBreakdown}
+        showBalanceBreakdown={showBalanceBreakdown}
+        incomeByCategory={incomeByCategory}
+        expenseByCategory={expenseByCategory}
+        balanceBySource={balanceBySource}
+        breakdownOnly
+      />
+
       <div className="app-layout">
         <AppLeftPanel
           editing={editing}
@@ -223,31 +263,27 @@ function App() {
           onDelete={handleDelete}
         />
 
-        <AppRightPanel
-          totalIncome={totalIncome}
-          totalExpense={totalExpense}
-          balance={balance}
-          showIncomeBreakdown={showIncomeBreakdown}
-          setShowIncomeBreakdown={setShowIncomeBreakdown}
-          showExpenseBreakdown={showExpenseBreakdown}
-          setShowExpenseBreakdown={setShowExpenseBreakdown}
-          showBalanceBreakdown={showBalanceBreakdown}
-          setShowBalanceBreakdown={setShowBalanceBreakdown}
-          incomeByCategory={incomeByCategory}
-          expenseByCategory={expenseByCategory}
-          balanceBySource={balanceBySource}
-          loans={loans}
-          totalLoanGiven={totalLoanGiven}
-          totalLoanTaken={totalLoanTaken}
-        />
+        <div className="app-right">
+          <AnalyticsErrorBoundary>
+            <AnalyticsDashboard entries={safeEntries} />
+          </AnalyticsErrorBoundary>
+
+          {Array.isArray(loans) && loans.length > 0 && (
+            <div className="summary-card loan-summary-card">
+              <span>
+                Loan Given:{" "}
+                <span style={{ color: "#1976d2" }}>₹{totalLoanGiven.toFixed(2)}</span>
+              </span>
+              <span>
+                Loan Taken:{" "}
+                <span style={{ color: "#e57373" }}>₹{totalLoanTaken.toFixed(2)}</span>
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
-      <AnalyticsErrorBoundary>
-        <AnalyticsDashboard entries={safeEntries} />
-      </AnalyticsErrorBoundary>
-      {toast && (
-        <div className={`toast ${toast.type}`}>{toast.msg}</div>
-      )}
+      {toast && <div className={`toast ${toast.type}`}>{toast.msg}</div>}
     </div>
   );
 }
