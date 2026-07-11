@@ -44,36 +44,25 @@ body::after {
   overflow: visible;
 }
 
+.analytics-panel {
+  width: 100%;
+  margin: 0 0 18px 0;
+}
+
 .app-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 18px;
   align-items: start;
 }
 
-.app-left,
-.app-right {
+.app-left {
   min-width: 0;
 }
 
-.app-right {
-  position: relative;
-  overflow: visible;
-  width: 100%;
-}
-
-/* Narrow screens: stack columns; show analytics above the form so charts aren't missed */
 @media (max-width: 900px) {
   .container {
     max-width: 98vw;
-  }
-  .app-layout {
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-  }
-  .app-right {
-    order: -1;
   }
 }
 
@@ -281,7 +270,9 @@ h1 {
 .ad-vbar-fill {
   width: 100%;
   border-radius: 10px;
-  min-height: 4px;
+  flex: 0 0 auto;
+  display: block;
+  box-sizing: border-box;
 }
 
 .ad-vbar-label {

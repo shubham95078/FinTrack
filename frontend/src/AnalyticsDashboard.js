@@ -124,16 +124,28 @@ function VerticalBars({ rows, color = "#1976d2", trackHeight = 120, emptyMessage
   }
 
   return (
-    <div className="ad-vchart">
+    <div className="ad-vchart" style={{ minHeight: trackHeight + 28 }}>
       {rows.map((r) => {
-        const barHeight = max > 0 ? Math.max(8, Math.round((r.value / max) * trackHeight)) : 0;
+        const barHeight =
+          max > 0 && r.value > 0
+            ? Math.max(10, Math.round((r.value / max) * trackHeight))
+            : 0;
         return (
           <div className="ad-vbar" key={r.key} title={`${r.label}: ${formatINR(r.value)}`}>
-            <div className="ad-vbar-track" style={{ height: trackHeight }}>
-              <div
-                className="ad-vbar-fill"
-                style={{ height: barHeight, backgroundColor: color }}
-              />
+            <div
+              className="ad-vbar-track"
+              style={{ height: `${trackHeight}px`, minHeight: `${trackHeight}px` }}
+            >
+              {barHeight > 0 ? (
+                <div
+                  className="ad-vbar-fill"
+                  style={{
+                    height: `${barHeight}px`,
+                    minHeight: `${barHeight}px`,
+                    background: color,
+                  }}
+                />
+              ) : null}
             </div>
             <div className="ad-vbar-label">{r.label}</div>
           </div>

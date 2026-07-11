@@ -263,6 +263,12 @@ function App() {
         breakdownOnly
       />
 
+      <div className="analytics-panel">
+        <AnalyticsErrorBoundary>
+          <AnalyticsDashboard entries={safeEntries} />
+        </AnalyticsErrorBoundary>
+      </div>
+
       <div className="app-layout">
         <AppLeftPanel
           editing={editing}
@@ -274,24 +280,18 @@ function App() {
           saving={saving}
         />
 
-        <div className="app-right">
-          <AnalyticsErrorBoundary>
-            <AnalyticsDashboard entries={safeEntries} />
-          </AnalyticsErrorBoundary>
-
-          {Array.isArray(loans) && loans.length > 0 && (
-            <div className="summary-card loan-summary-card">
-              <span>
-                Loan Given:{" "}
-                <span style={{ color: "#1976d2" }}>₹{totalLoanGiven.toFixed(2)}</span>
-              </span>
-              <span>
-                Loan Taken:{" "}
-                <span style={{ color: "#e57373" }}>₹{totalLoanTaken.toFixed(2)}</span>
-              </span>
-            </div>
-          )}
-        </div>
+        {Array.isArray(loans) && loans.length > 0 && (
+          <div className="summary-card loan-summary-card">
+            <span>
+              Loan Given:{" "}
+              <span style={{ color: "#1976d2" }}>₹{totalLoanGiven.toFixed(2)}</span>
+            </span>
+            <span>
+              Loan Taken:{" "}
+              <span style={{ color: "#e57373" }}>₹{totalLoanTaken.toFixed(2)}</span>
+            </span>
+          </div>
+        )}
       </div>
 
       {toast && <div className={`toast ${toast.type}`}>{toast.msg}</div>}
