@@ -7,6 +7,18 @@ export const API_BASE =
 
 const API_URL = `${API_BASE}/entries`;
 
+async function request(url, options = {}) {
+  let res;
+  try {
+    res = await fetch(url, options);
+  } catch {
+    throw new Error(
+      'Cannot reach the server. Check your connection or wait a moment if the backend just woke up.'
+    );
+  }
+  return res;
+}
+
 // Helper function to get auth headers
 const getAuthHeaders = () => {
   const token = localStorage.getItem('token');
@@ -17,7 +29,7 @@ const getAuthHeaders = () => {
 };
 
 export async function getEntries() {
-  const res = await fetch(API_URL, {
+  const res = await request(API_URL, {
     headers: getAuthHeaders()
   });
   
@@ -33,7 +45,7 @@ export async function getEntries() {
 }
 
 export async function addEntry(entry) {
-  const res = await fetch(API_URL, {
+  const res = await request(API_URL, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify(entry),
@@ -52,7 +64,7 @@ export async function addEntry(entry) {
 }
 
 export async function updateEntry(id, entry) {
-  const res = await fetch(`${API_URL}/${id}`, {
+  const res = await request(`${API_URL}/${id}`, {
     method: "PUT",
     headers: getAuthHeaders(),
     body: JSON.stringify(entry),
@@ -71,7 +83,7 @@ export async function updateEntry(id, entry) {
 }
 
 export async function deleteEntry(id) {
-  const res = await fetch(`${API_URL}/${id}`, { 
+  const res = await request(`${API_URL}/${id}`, { 
     method: "DELETE",
     headers: getAuthHeaders()
   });
