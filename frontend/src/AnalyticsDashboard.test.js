@@ -1,22 +1,35 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import AnalyticsDashboard from "./AnalyticsDashboard";
+import { getDashboard } from "./api";
 
-test("renders charts when expense entries exist", () => {
-  const entries = [
-    {
-      id: 1,
-      title: "Food",
-      amount: 5000,
-      category: "Food",
-      date: "2026-07-11",
-      type: "expense",
-    },
-  ];
+jest.mock("./api", () => ({
+  getDashboard: jest.fn(),
+}));
 
-  render(<AnalyticsDashboard entries={entries} />);
+test("renders charts when expense entries exist", async () => {
+  getDashboard.mockResolvedValue({
+    year: 2026,
+    hasEntries: true,
+    selectedMonthKey: "2026-07",
+    availableMonthKeys: ["2026-07"],
+    currentMonthExpenseTotal: 5000,
+    currentMonthIncomeTotal: 0,
+    selectedMonthExpenseTotal: 5000,
+    selectedMonthIncomeTotal: 0,
+    monthlySpending: [{ key: "2026-07", label: "Jul", value: 5000 }],
+    monthlyIncome: [{ key: "2026-07", label: "Jul", value: 0 }],
+    selectedMonthCategoryRows: [{ key: "Food", label: "Food", value: 5000 }],
+    selectedMonthIncomeRows: [],
+    categorySpendingAllTime: [{ key: "Food", label: "Food", value: 5000 }],
+    incomeVsExpense: { income: 0, expense: 5000, balance: -5000 },
+  });
 
-  expect(screen.getByText("Smart Analytics Dashboard")).toBeInTheDocument();
+  render(<AnalyticsDashboard />);
+
+  expect(await screen.findByText("Smart Analytics Dashboard")).toBeInTheDocument();
   expect(screen.getByText("Monthly spending trend")).toBeInTheDocument();
   expect(screen.getByText("Category-wise spending")).toBeInTheDocument();
-  expect(document.querySelectorAll(".ad-vbar-fill").length).toBeGreaterThan(0);
+  await waitFor(() => {
+    expect(document.querySelectorAll(".ad-vbar-fill").length).toBeGreaterThan(0);
+  });
 });

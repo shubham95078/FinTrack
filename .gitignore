@@ -21,6 +21,8 @@ out/
 *.sqlite
 *.sqlite3
 instance/
+backend/.pgdata/
+backend/.pg-test/
 
 # IDE and editor files
 .vscode/

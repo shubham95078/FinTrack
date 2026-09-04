@@ -1,123 +1,21 @@
-import React, { useMemo, useState } from "react";
-
-function parseEntryDate(dateStr) {
-  if (!dateStr) return new Date();
-
-  const s = String(dateStr).trim();
-  if (!s) return new Date();
-
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
-    const [y, m, d] = s.split("-").map(Number);
-    const parsed = new Date(y, m - 1, d);
-    if (!Number.isNaN(parsed.getTime())) return parsed;
-  }
-
-  const iso = new Date(s.includes("T") ? s : `${s}T12:00:00`);
-  if (!Number.isNaN(iso.getTime())) return iso;
-
-  const fallback = new Date(s);
-  return Number.isNaN(fallback.getTime()) ? new Date() : fallback;
-}
-
-function normalizeType(type) {
-  return String(type || "").trim().toLowerCase();
-}
+import React, { useEffect, useState } from "react";
+import { getDashboard } from "./api";
 
 function formatINR(amount) {
   const n = Number(amount) || 0;
   return `₹${n.toFixed(2)}`;
 }
 
-function monthKey(d) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
-
-function getYearMonths(year) {
-  const months = [];
-  for (let m = 0; m < 12; m += 1) {
-    months.push(new Date(year, m, 1));
-  }
-  return months;
-}
-
 function formatMonthLabel(key) {
-  // key: YYYY-MM
   const [y, m] = String(key).split("-");
   const d = new Date(Number(y), Number(m) - 1, 1);
   return d.toLocaleDateString("en-IN", { month: "short", year: "numeric" });
 }
 
-function getExpenseLikeCategory(e) {
-  return e.type === "loan"
-    ? `Loan (${e.loan_type || "given"})`
-    : e.category || "Other";
-}
-
-function getMonthKeyNow() {
-  return monthKey(new Date());
-}
-
-function sumExpenseLikeForMonth(expenseLike, targetMonthKey) {
-  return expenseLike
-    .filter((e) => monthKey(e._d) === targetMonthKey)
-    .reduce((s, e) => s + e._amount, 0);
-}
-
-function categoryRowsForMonth(entries, targetMonthKey, getCategory, limit = 8) {
-  const buckets = new Map();
-  for (const e of entries) {
-    if (monthKey(e._d) !== targetMonthKey) continue;
-    const cat = getCategory(e);
-    buckets.set(cat, (buckets.get(cat) || 0) + e._amount);
-  }
-  return Array.from(buckets.entries())
-    .map(([key, value]) => ({ key, label: key, value }))
-    .sort((a, b) => b.value - a.value)
-    .slice(0, limit);
-}
-
-function buildMonthlySeries(entries, year) {
-  const months = getYearMonths(year);
-  const buckets = new Map(months.map((m) => [monthKey(m), 0]));
-
-  for (const e of entries) {
-    const key = monthKey(e._d);
-    if (!buckets.has(key)) continue;
-    buckets.set(key, (buckets.get(key) || 0) + e._amount);
-  }
-
-  return months.map((m) => {
-    const key = monthKey(m);
-    const label = m.toLocaleDateString("en-IN", { month: "short" });
-    return { key, label, value: buckets.get(key) || 0 };
-  });
-}
-
-// Separate method (reusable) to get monthly expense total.
-export function getExpenseTotalForMonth(entries, targetMonthKey) {
-  const list = Array.isArray(entries) ? entries : [];
-  const expenseLike = list
-    .filter(Boolean)
-    .map((e) => {
-      const d = parseEntryDate(e.date);
-      const amount = Number(e.amount) || 0;
-      return { ...e, _d: d, _amount: amount };
-    })
-    .filter(
-      (e) =>
-        e._d &&
-        e._amount > 0 &&
-        (e.type === "expense" || (e.type === "loan" && e.loan_type === "given"))
-    );
-
-  return expenseLike
-    .filter((e) => monthKey(e._d) === targetMonthKey)
-    .reduce((s, e) => s + e._amount, 0);
-}
-
 function VerticalBars({ rows, color = "#1976d2", trackHeight = 120, emptyMessage = "No data yet." }) {
-  const max = Math.max(0, ...rows.map((r) => r.value));
-  const hasData = rows.some((r) => r.value > 0);
+  const list = Array.isArray(rows) ? rows : [];
+  const max = Math.max(0, ...list.map((r) => r.value));
+  const hasData = list.some((r) => r.value > 0);
 
   if (!hasData) {
     return <div className="ad-empty">{emptyMessage}</div>;
@@ -125,7 +23,7 @@ function VerticalBars({ rows, color = "#1976d2", trackHeight = 120, emptyMessage
 
   return (
     <div className="ad-vchart" style={{ minHeight: trackHeight + 28 }}>
-      {rows.map((r) => {
+      {list.map((r) => {
         const barHeight =
           max > 0 && r.value > 0
             ? Math.max(10, Math.round((r.value / max) * trackHeight))
@@ -170,145 +68,77 @@ function Card({ title, subtitle, right, children }) {
   );
 }
 
-function AnalyticsDashboard({ entries }) {
-  const currentMonthKey = getMonthKeyNow();
-  const currentYear = new Date().getFullYear();
-  const [selectedMonthKey, setSelectedMonthKey] = useState(currentMonthKey);
+function AnalyticsDashboard({ refreshKey = 0 }) {
+  const [selectedMonthKey, setSelectedMonthKey] = useState("");
+  const [data, setData] = useState(null);
+  const [error, setError] = useState("");
 
-  const normalized = useMemo(() => {
-    const list = Array.isArray(entries) ? entries : [];
-    return list
-      .filter(Boolean)
-      .map((e) => {
-        const d = parseEntryDate(e.date);
-        const amount = Number(e.amount) || 0;
-        const type = normalizeType(e.type);
-        return { ...e, type, _d: d, _amount: amount };
+  useEffect(() => {
+    let cancelled = false;
+    getDashboard(selectedMonthKey || undefined)
+      .then((payload) => {
+        if (cancelled) return;
+        setData(payload);
+        if (!selectedMonthKey && payload.selectedMonthKey) {
+          setSelectedMonthKey(payload.selectedMonthKey);
+        }
       })
-      .filter((e) => e._d && e._amount > 0 && e.type);
-  }, [entries]);
+      .catch((err) => {
+        if (!cancelled) setError(err.message);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedMonthKey, refreshKey]);
 
-  const expenseLike = useMemo(
-    () =>
-      normalized.filter(
-        (e) =>
-          e.type === "expense" || (e.type === "loan" && e.loan_type === "given")
-      ),
-    [normalized]
-  );
+  if (error) {
+    return (
+      <section className="ad-section" aria-label="Smart Analytics Dashboard">
+        <div className="ad-empty">{error}</div>
+      </section>
+    );
+  }
 
-  const incomeLike = useMemo(
-    () =>
-      normalized.filter(
-        (e) =>
-          e.type === "income" || (e.type === "loan" && e.loan_type === "taken")
-      ),
-    [normalized]
-  );
+  if (!data) {
+    return (
+      <section className="ad-section" aria-label="Smart Analytics Dashboard">
+        <div className="ad-section-title">Smart Analytics Dashboard</div>
+        <div className="ad-empty">Loading analytics…</div>
+      </section>
+    );
+  }
 
-  const monthlySpending = useMemo(
-    () => buildMonthlySeries(expenseLike, currentYear),
-    [expenseLike, currentYear]
-  );
-
-  const monthlyIncome = useMemo(
-    () => buildMonthlySeries(incomeLike, currentYear),
-    [incomeLike, currentYear]
-  );
-
-  const categorySpendingAllTime = useMemo(() => {
-    const buckets = new Map();
-    for (const e of expenseLike) {
-      const category = getExpenseLikeCategory(e);
-      buckets.set(category, (buckets.get(category) || 0) + e._amount);
-    }
-    const rows = Array.from(buckets.entries())
-      .map(([key, value]) => ({ key, label: key, value }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 8);
-    return rows;
-  }, [expenseLike]);
-
-  const availableMonthKeys = useMemo(() => {
-    const set = new Set([
-      ...expenseLike.map((e) => monthKey(e._d)),
-      ...incomeLike.map((e) => monthKey(e._d)),
-    ]);
-    set.add(currentMonthKey);
-    return Array.from(set).sort();
-  }, [expenseLike, incomeLike, currentMonthKey]);
-
-  const currentMonthExpenseTotal = useMemo(
-    () => sumExpenseLikeForMonth(expenseLike, currentMonthKey),
-    [expenseLike, currentMonthKey]
-  );
-
-  const selectedMonthExpenseTotal = useMemo(
-    () => sumExpenseLikeForMonth(expenseLike, selectedMonthKey),
-    [expenseLike, selectedMonthKey]
-  );
-
-  const selectedMonthCategoryRows = useMemo(
-    () => categoryRowsForMonth(expenseLike, selectedMonthKey, getExpenseLikeCategory, 8),
-    [expenseLike, selectedMonthKey]
-  );
-
-  const selectedMonthIncomeRows = useMemo(
-    () =>
-      categoryRowsForMonth(
-        incomeLike,
-        selectedMonthKey,
-        (e) => (e.type === "loan" ? `Loan (${e.loan_type || "taken"})` : e.category || "Other"),
-        8
-      ),
-    [incomeLike, selectedMonthKey]
-  );
-
-  const incomeVsExpense = useMemo(() => {
-    const income = incomeLike.reduce((s, e) => s + e._amount, 0);
-    const expense = expenseLike.reduce((s, e) => s + e._amount, 0);
-    const balance = income - expense;
-    return { income, expense, balance };
-  }, [incomeLike, expenseLike]);
-
-  if (normalized.length === 0) {
-    const rawCount = Array.isArray(entries) ? entries.filter(Boolean).length : 0;
+  if (!data.hasEntries) {
     return (
       <section className="ad-section" aria-label="Smart Analytics Dashboard">
         <div className="ad-section-header">
           <div>
             <div className="ad-section-title">Smart Analytics Dashboard</div>
-            <div className="ad-section-subtitle">
-              {rawCount > 0
-                ? "Entries found, but charts need valid amount and type."
-                : "Add income or expenses to see charts here."}
-            </div>
+            <div className="ad-section-subtitle">Add income or expenses to see charts here.</div>
           </div>
         </div>
-        <div className="ad-empty">
-          {rawCount > 0 ? `${rawCount} entries loaded — charts will appear shortly.` : "No entries yet."}
-        </div>
+        <div className="ad-empty">No entries yet.</div>
       </section>
     );
   }
+
+  const incomeVsExpense = data.incomeVsExpense || { income: 0, expense: 0, balance: 0 };
 
   return (
     <section className="ad-section" aria-label="Smart Analytics Dashboard">
       <div className="ad-section-header">
         <div>
           <div className="ad-section-title">Smart Analytics Dashboard</div>
-          <div className="ad-section-subtitle">
-            Insights from your entries (loans included)
-          </div>
+          <div className="ad-section-subtitle">Your financial overview at a glance</div>
         </div>
         <div className="ad-month-picker">
           <div className="ad-month-picker-label">Month</div>
           <select
             className="ad-month-select"
-            value={selectedMonthKey}
+            value={selectedMonthKey || data.selectedMonthKey}
             onChange={(e) => setSelectedMonthKey(e.target.value)}
           >
-            {availableMonthKeys.map((k) => (
+            {(data.availableMonthKeys || []).map((k) => (
               <option key={k} value={k}>
                 {formatMonthLabel(k)}
               </option>
@@ -320,15 +150,11 @@ function AnalyticsDashboard({ entries }) {
       <div className="ad-grid">
         <Card
           title="Monthly spending trend"
-          subtitle={`Jan → Dec ${currentYear} (expenses + loan given)`}
-          right={
-            <span title="Current month total">
-              {formatINR(currentMonthExpenseTotal)}
-            </span>
-          }
+          subtitle={`Jan → Dec ${data.year} (expenses + loan given)`}
+          right={formatINR(data.currentMonthExpenseTotal)}
         >
           <VerticalBars
-            rows={monthlySpending}
+            rows={data.monthlySpending}
             color="#ff9800"
             emptyMessage="No expenses yet. Add an expense to see this chart."
           />
@@ -336,11 +162,11 @@ function AnalyticsDashboard({ entries }) {
 
         <Card
           title="Monthly income trend"
-          subtitle={`Jan → Dec ${currentYear} (income + loan taken)`}
-          right={formatINR(incomeLike.reduce((s, e) => s + (monthKey(e._d) === currentMonthKey ? e._amount : 0), 0))}
+          subtitle={`Jan → Dec ${data.year} (income + loan taken)`}
+          right={formatINR(data.currentMonthIncomeTotal)}
         >
           <VerticalBars
-            rows={monthlyIncome}
+            rows={data.monthlyIncome}
             color="#43a047"
             emptyMessage="No income yet. Add income to see this chart."
           />
@@ -348,41 +174,37 @@ function AnalyticsDashboard({ entries }) {
 
         <Card
           title="Selected month spending"
-          subtitle={`${formatMonthLabel(selectedMonthKey)} (expenses + loan given)`}
-          right={formatINR(selectedMonthExpenseTotal)}
+          subtitle={`${formatMonthLabel(data.selectedMonthKey)} (expenses + loan given)`}
+          right={formatINR(data.selectedMonthExpenseTotal)}
         >
-          {selectedMonthCategoryRows.length === 0 ? (
+          {(data.selectedMonthCategoryRows || []).length === 0 ? (
             <div className="ad-empty">No spending in this month.</div>
           ) : (
-            <VerticalBars rows={selectedMonthCategoryRows} color="#e57373" />
+            <VerticalBars rows={data.selectedMonthCategoryRows} color="#e57373" />
           )}
         </Card>
 
         <Card
           title="Selected month income"
-          subtitle={`${formatMonthLabel(selectedMonthKey)} (income + loan taken)`}
-          right={formatINR(
-            incomeLike
-              .filter((e) => monthKey(e._d) === selectedMonthKey)
-              .reduce((s, e) => s + e._amount, 0)
-          )}
+          subtitle={`${formatMonthLabel(data.selectedMonthKey)} (income + loan taken)`}
+          right={formatINR(data.selectedMonthIncomeTotal)}
         >
-          {selectedMonthIncomeRows.length === 0 ? (
+          {(data.selectedMonthIncomeRows || []).length === 0 ? (
             <div className="ad-empty">No income in this month.</div>
           ) : (
-            <VerticalBars rows={selectedMonthIncomeRows} color="#66bb6a" />
+            <VerticalBars rows={data.selectedMonthIncomeRows} color="#66bb6a" />
           )}
         </Card>
 
         <Card
           title="Category-wise spending"
           subtitle="Top categories (all time)"
-          right={formatINR(categorySpendingAllTime.reduce((s, r) => s + r.value, 0))}
+          right={formatINR((data.categorySpendingAllTime || []).reduce((s, r) => s + r.value, 0))}
         >
-          {categorySpendingAllTime.length === 0 ? (
+          {(data.categorySpendingAllTime || []).length === 0 ? (
             <div className="ad-empty">No spending categories yet.</div>
           ) : (
-            <VerticalBars rows={categorySpendingAllTime} color="#8e24aa" />
+            <VerticalBars rows={data.categorySpendingAllTime} color="#8e24aa" />
           )}
         </Card>
 
@@ -403,15 +225,11 @@ function AnalyticsDashboard({ entries }) {
           <div className="ad-compare">
             <div className="ad-compare-row">
               <div className="ad-compare-label">Income</div>
-              <div className="ad-compare-pill income">
-                {formatINR(incomeVsExpense.income)}
-              </div>
+              <div className="ad-compare-pill income">{formatINR(incomeVsExpense.income)}</div>
             </div>
             <div className="ad-compare-row">
               <div className="ad-compare-label">Expense</div>
-              <div className="ad-compare-pill expense">
-                {formatINR(incomeVsExpense.expense)}
-              </div>
+              <div className="ad-compare-pill expense">{formatINR(incomeVsExpense.expense)}</div>
             </div>
           </div>
         </Card>
@@ -421,4 +239,4 @@ function AnalyticsDashboard({ entries }) {
 }
 
 export default AnalyticsDashboard;
-
+export { VerticalBars, Card };

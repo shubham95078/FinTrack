@@ -1,70 +1,51 @@
-# Getting Started with Create React App
+# FinTrack frontend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+React UI for FinTrack. Full setup, API, and architecture notes live in the [root README](../README.md).
 
-## Available Scripts
+## Run
 
-In the project directory, you can run:
+With the API already running on port 5000:
 
-### `npm start`
+```bash
+npm install
+npm start
+```
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+The app opens at [http://localhost:3000](http://localhost:3000).
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+Optional `frontend/.env` if the API is not at `http://localhost:5000`:
 
-### `npm test`
+```env
+REACT_APP_API_BASE_URL=http://localhost:5000
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Restart `npm start` after changing `REACT_APP_*` variables (they are baked in at build time).
 
-### `npm run build`
+## How it talks to the API
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+- `src/api.js` — all HTTP calls, `credentials: 'include'` for the HttpOnly session cookie
+- Session restore: `GET /auth/me` on load (no token in `localStorage`)
+- Analytics, budgets, recurring rules, goals, and reports are loaded from backend endpoints, not computed only in the browser
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## Main UI
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+Desktop is a **55% / 45%** split:
 
-### `npm run eject`
+- **Left — Finance management:** add transaction; budget / recurring / goals / reports (2×2); transaction history with search, filter, sort, and pagination
+- **Right — Dashboard:** balance, income, expenses, loans, charts, smart insights
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+On narrower screens the columns stack.
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+Key files:
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+- `src/App.js` — auth shell, two-column layout
+- `src/AppLeftPanel.js` — left column
+- `src/AnalyticsDashboard.js` — dashboard charts
+- `src/FinanceTools.js` — budgets, recurring, goals, reports, insights
+- `src/index.css` — layout and visual style
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## Scripts
 
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- `npm start` — development server
+- `npm test` — React tests
+- `npm run build` — production build

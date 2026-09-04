@@ -1,183 +1,246 @@
-# 💰 FinTrack - Personal Finance Tracker
+# FinTrack
 
-A modern, secure personal finance management application built with Node.js, Express, and React. Track your expenses, income, and loans with a beautiful, responsive interface and robust user authentication.
+FinTrack is a full-stack personal finance application for tracking income, expenses, and loans. Users can manage transactions, set monthly budgets and savings goals, generate reports, and view analytics on a two-column dashboard.
 
-![FinTrack](https://img.shields.io/badge/FinTrack-Finance%20Tracker-blue?style=for-the-badge&logo=react)
-![Node.js](https://img.shields.io/badge/Node.js-18+-green?style=for-the-badge&logo=node.js)
-![React](https://img.shields.io/badge/React-18+-blue?style=for-the-badge&logo=react)
-![Express](https://img.shields.io/badge/Express-4.18+-black?style=for-the-badge&logo=express)
+The frontend is **React**. The API is **Node.js** and **Express**, with data stored in **PostgreSQL**.
 
-## ✨ Features
+## Features
 
-- 🔐 **Secure Authentication** - JWT-based login/signup system
-- 💰 **Expense Tracking** - Monitor spending by category with visual breakdowns
-- 💵 **Income Management** - Track income sources and patterns
-- 🏦 **Loan Tracking** - Manage loans given and taken with person details
-- 📊 **Smart Analytics Dashboard**
-  - Monthly spending trend (Jan → Dec) for the current year
-  - Category-wise spending (all time and per selected month)
-  - Income vs expense comparison (including loans)
-  - Month selector to inspect any month’s totals and categories
-- 🧾 **Two‑pane Layout**
-  - Left: fast entry input and history list
-  - Right: summaries, breakdowns, and analytics
-- 🔒 **Data Privacy** - Each user's data is completely isolated
-- 📱 **Responsive Design** - Works perfectly on all devices
-- 🎨 **Modern UI** - Beautiful, intuitive interface
+**Authentication**
+- Register and log in
+- Passwords hashed with bcryptjs
+- JWT stored in an HttpOnly cookie
+- Session restore via `GET /auth/me`
 
-## 🚀 Tech Stack
+**Transactions**
+- Income, expense, and loan entries (loan given / loan taken)
+- Add, edit, and delete
+- Each user’s data is isolated from other users
 
-### Backend
-- **Node.js** - JavaScript runtime
-- **Express.js** - Web framework
-- **SQLite** - Lightweight database
-- **JWT** - Authentication tokens
-- **bcryptjs** - Password hashing
-- **CORS** - Cross-origin resource sharing
+**Search, filter, sort, and pagination**
+- Server-side query parameters on `GET /entries`
 
-### Frontend
-- **React** - User interface library
-- **CSS3** - Modern styling with gradients and animations
-- **Responsive Design** - Mobile-first approach
+**Budgets**
+- Monthly budget amount
+- Spending progress and over-budget alerts
 
-## 📋 Prerequisites
+**Recurring transactions**
+- Daily, weekly, monthly, or yearly frequency
+- Due items are written as dated entries
 
-- **Node.js** (version 14 or higher)
-- **npm** (comes with Node.js)
-- **Git** (for version control)
+**Financial goals**
+- Target amount, current amount, and progress
 
-## 🛠️ Installation
+**Reports**
+- CSV and PDF export for the authenticated user
 
-### 1. Clone the Repository
-```bash
-git clone https://github.com/YOUR_USERNAME/FinTrack.git
-cd FinTrack
+**Analytics and insights**
+- Totals computed in SQL on the server
+- Monthly spending trends
+- Category-wise spending
+- Income vs expense
+- Smart insights (for example month-over-month spending and top categories)
+
+**Security**
+- Helmet, CORS with credentials, rate limiting, request validation, and centralized error handling
+
+## Application layout
+
+On desktop the main screen is a **55% / 45%** split.
+
+**Left — Finance management (55%)**
+1. Add Transaction
+2. Monthly Budget, Recurring Transactions, Financial Goals, and Reports (2×2 grid)
+3. Transaction History at the bottom (search, filter, sort, list, pagination)
+
+**Right — Dashboard (45%)**
+- Balance, income, and expenses
+- Loan summary
+- Charts (income vs expense, category spending, monthly trends)
+- Smart insights
+
+On tablet and mobile the columns stack into a single column.
+
+## Tech stack
+
+**Backend**
+- Node.js, Express
+- PostgreSQL (`pg`)
+- JWT, HttpOnly cookies, bcryptjs
+- Helmet, express-rate-limit, express-validator, pdfkit
+
+**Frontend**
+- React (Create React App)
+- `fetch` with `credentials: 'include'`
+
+## Architecture
+
+The API is organized as **routes → controllers → services → db**.
+
+- **Routes** — URL paths, HTTP methods, auth and validation middleware
+- **Controllers** — parse the request and return the HTTP response
+- **Services** — business rules and SQL (including user-scoped queries)
+- **db** — PostgreSQL pool and schema applied on startup (`backend/src/db/schema.sql`)
+
+## Setup
+
+### Prerequisites
+
+- Node.js 18+
+- PostgreSQL (local install or Docker)
+
+If you are not using Docker, create a role and databases:
+
+```sql
+CREATE USER fintrack WITH PASSWORD 'fintrack' CREATEDB;
+CREATE DATABASE fintrack OWNER fintrack;
+CREATE DATABASE fintrack_test OWNER fintrack;
 ```
 
-### 2. Backend Setup
+### Environment
+
+Copy [`.env.example`](.env.example) to `backend/.env` and set a long random `JWT_SECRET`:
+
+```env
+NODE_ENV=development
+PORT=5000
+JWT_SECRET=your-super-secret-key-here
+DATABASE_URL=postgres://fintrack:fintrack@localhost:5432/fintrack
+FRONTEND_URL=http://localhost:3000
+COOKIE_SECURE=false
+COOKIE_SAMESITE=lax
+```
+
+Optional: from the repo root, `docker compose up -d` starts PostgreSQL 16 with user/password/database `fintrack` on port 5432. Create `fintrack_test` separately if you will run API tests.
+
+Schema (tables, constraints, indexes) is applied when the API starts.
+
+### Backend
+
 ```bash
 cd backend
 npm install
 npm run dev
 ```
-The API listens on `http://localhost:5000` (see `GET /health` to verify it is running).
 
-### 3. Frontend Setup
-Open a **second** terminal (keep the backend running), then:
+Health check: `GET http://localhost:5000/health`
+
+### Frontend
+
 ```bash
 cd frontend
 npm install
 npm start
 ```
-The app opens at `http://localhost:3000` and talks to the backend on port 5000 by default.
 
-## 🔧 Configuration
+Open [http://localhost:3000](http://localhost:3000). The browser includes cookies because requests use `credentials: 'include'` and the API enables CORS credentials.
 
-### Environment Variables
-
-**Backend** — create `backend/.env` (you can start from the root [`.env.example`](.env.example)):
+Optional `frontend/.env` if the API is not at `http://localhost:5000`:
 
 ```env
-JWT_SECRET=your-super-secret-key-here
-PORT=5000
+REACT_APP_API_BASE_URL=http://localhost:5000
 ```
 
-Use a long, random `JWT_SECRET` in any real deployment. Do **not** commit `.env` files.
+Restart `npm start` after changing `REACT_APP_*` variables.
 
-**Frontend (optional)** — if your API is not at `http://localhost:5000/entries`, create `frontend/.env`:
+### Migrating old SQLite data
 
-```env
-REACT_APP_API_URL=http://your-host:port/entries
+If `backend/instance/expenses.db` exists from an earlier version:
+
+```bash
+cd backend
+npm run migrate:sqlite
 ```
 
-Create React App reads `REACT_APP_*` variables at **build** time; restart `npm start` after changing them.
+## Authentication and security
 
-### Database
-- SQLite database is automatically created on first run
-- Located at `backend/instance/expenses.db`
-- No additional setup required
+- Passwords are hashed with bcryptjs before they are stored
+- On register/login the API sets an HttpOnly cookie (`ft_token`) containing a JWT; the token is not returned in the JSON body
+- The React app sends `credentials: 'include'` and restores the session with `GET /auth/me`
+- Protected queries filter by the authenticated user’s id, so one user cannot read or change another user’s records
+- **Helmet** sets security headers
+- **CORS** allowlists `FRONTEND_URL` (and Vercel preview hosts) and allows credentials
+- **Rate limiting** on general traffic and on login/register
+- **express-validator** on auth and entry payloads
+- A centralized error handler returns JSON errors without stack traces
 
-## 📱 Usage
+Bearer tokens are still accepted on protected routes so tests and non-browser clients can authenticate. The web UI uses cookies only.
 
-1. **Register** - Create your account with username, email, and password
-2. **Login** - Access your personal finance dashboard
-3. **Add Entries** - Track expenses, income, or loans
-4. **View Analytics** - See breakdowns by category and time
-5. **Manage Data** - Edit or delete entries as needed
+## Testing
 
-## 🗄️ Database Schema
-
-### Users Table
-```sql
-CREATE TABLE users (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  username TEXT UNIQUE NOT NULL,
-  email TEXT UNIQUE NOT NULL,
-  password TEXT NOT NULL,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
+```bash
+cd backend
+npm test
 ```
 
-### Entries Table
-```sql
-CREATE TABLE entries (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id INTEGER NOT NULL,
-  title TEXT NOT NULL,
-  amount REAL NOT NULL,
-  category TEXT NOT NULL,
-  date TEXT NOT NULL,
-  type TEXT NOT NULL,
-  loan_type TEXT,
-  person TEXT,
-  note TEXT,
-  FOREIGN KEY (user_id) REFERENCES users (id)
-);
-```
+There are **16** automated API tests in `backend/tests/api.test.js` (Jest + Supertest). They use `fintrack_test` on `127.0.0.1:5432` (`backend/jest.config.js`) and truncate tables between cases.
 
-## 🔌 API Endpoints
+Coverage includes:
+- Registration, login, short-password and duplicate-username rejection
+- HttpOnly cookie session, `GET /auth/me`, and logout
+- Unauthenticated access rejected
+- Cross-user isolation for entries, analytics, budgets, goals, recurring rules, and CSV reports
+- Entry search, type filter, sort, and pagination
 
-### Authentication
-- `POST /auth/register` - User registration
-- `POST /auth/login` - User login
+## Database
 
-### Protected Routes (require authentication)
-- `GET /entries` - Get all entries for authenticated user
-- `POST /entries` - Create a new entry
-- `PUT /entries/:id` - Update an existing entry
-- `DELETE /entries/:id` - Delete an entry
+| Table | Role |
+|---|---|
+| `users` | Unique username and email, hashed password |
+| `entries` | Transactions; `user_id` → `users` `ON DELETE CASCADE`; optional `recurring_id` |
+| `monthly_budgets` | Unique `(user_id, month)` as `YYYY-MM` |
+| `recurring_transactions` | Frequency (`daily` / `weekly` / `monthly` / `yearly`) and `next_run_date` |
+| `financial_goals` | Target amount, current amount, optional deadline |
 
-### Public Routes
-- `GET /health` - Health check endpoint
+Implemented constraints and indexes include:
+- `entries.amount > 0`; `type` in `income`, `expense`, `loan`; loans require `loan_type` and `person`
+- Indexes on entries: `(user_id, date)`, type, category, title, amount
+- `recurring_id` → `recurring_transactions` `ON DELETE SET NULL`
 
-## 🎨 Screenshots
+## API
 
-*[Add screenshots of your application here]*
+### Public
 
-## 🤝 Contributing
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/health` | Process health |
+| `POST` | `/auth/register` | Sets HttpOnly cookie |
+| `POST` | `/auth/login` | Sets HttpOnly cookie |
+| `POST` | `/auth/logout` | Clears cookie |
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+### Authenticated
 
-## 📝 License
+Cookie or `Authorization: Bearer`. All data routes are scoped to the current user.
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+| Method | Path |
+|---|---|
+| `GET` | `/auth/me` |
+| `GET` | `/entries?search=&type=&category=&from=&to=&sort=&order=&page=&limit=` |
+| `POST` | `/entries` |
+| `PUT` | `/entries/:id` |
+| `DELETE` | `/entries/:id` |
+| `GET` | `/analytics/summary` |
+| `GET` | `/analytics/dashboard?month=YYYY-MM` |
+| `GET` | `/analytics/insights` |
+| `GET` | `/budgets?month=YYYY-MM` |
+| `GET` | `/budgets/history` |
+| `PUT` | `/budgets` |
+| `GET`, `POST` | `/recurring` |
+| `PUT`, `DELETE` | `/recurring/:id` |
+| `GET`, `POST` | `/goals` |
+| `PUT`, `DELETE` | `/goals/:id` |
+| `GET` | `/reports/csv` |
+| `GET` | `/reports/pdf` |
 
-## 🙏 Acknowledgments
+`sort` for entries: `date`, `amount`, `title`, or `category`. `order`: `asc` or `desc`.
 
-- Built with modern web technologies
-- Inspired by the need for simple, secure personal finance tracking
-- Special thanks to the open-source community
+## Production notes
 
-## 📞 Support
+- Use a long random `JWT_SECRET`; do not commit `.env`
+- Hosted Postgres: set `DATABASE_SSL=true` if required by the provider
+- Set `FRONTEND_URL` to the real origin(s), comma-separated
+- Cross-site HTTPS cookies (separate frontend and API hosts): `COOKIE_SECURE=true` and `COOKIE_SAMESITE=none`
 
-If you have any questions or need help:
-- Create an issue on GitHub
-- Contact: [Your Email]
+## License
 
----
-
-**Made with ❤️ for better financial management** 
+MIT
