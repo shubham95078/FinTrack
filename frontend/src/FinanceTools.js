@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   addGoal,
   addRecurring,
@@ -52,7 +52,7 @@ export function BudgetPanel({ refreshKey, onChange, onAuthError }) {
   const [budget, setBudget] = useState(null);
   const [amount, setAmount] = useState("");
 
-  const load = () => {
+  const load = useCallback(() => {
     getBudget()
       .then((data) => {
         setBudget(data);
@@ -61,11 +61,11 @@ export function BudgetPanel({ refreshKey, onChange, onAuthError }) {
       .catch((err) => {
         if (err.message.includes("Unauthorized")) onAuthError(err);
       });
-  };
+  }, [onAuthError]);
 
   useEffect(() => {
     load();
-  }, [refreshKey, onAuthError]);
+  }, [load, refreshKey]);
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -123,17 +123,17 @@ export function RecurringPanel({ refreshKey, onChange, onAuthError }) {
     start_date: new Date().toISOString().slice(0, 10),
   });
 
-  const load = () => {
+  const load = useCallback(() => {
     getRecurring()
       .then(setItems)
       .catch((err) => {
         if (err.message.includes("Unauthorized")) onAuthError(err);
       });
-  };
+  }, [onAuthError]);
 
   useEffect(() => {
     load();
-  }, [refreshKey, onAuthError]);
+  }, [load, refreshKey]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -210,17 +210,17 @@ export function GoalsPanel({ refreshKey, onChange, onAuthError }) {
   const [items, setItems] = useState([]);
   const [form, setForm] = useState({ name: "", target_amount: "", current_amount: "", deadline: "" });
 
-  const load = () => {
+  const load = useCallback(() => {
     getGoals()
       .then(setItems)
       .catch((err) => {
         if (err.message.includes("Unauthorized")) onAuthError(err);
       });
-  };
+  }, [onAuthError]);
 
   useEffect(() => {
     load();
-  }, [refreshKey, onAuthError]);
+  }, [load, refreshKey]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
